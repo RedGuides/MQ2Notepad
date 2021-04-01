@@ -37,7 +37,7 @@ class CNotepadWnd : public CCustomWnd {
 public:
     CNotepadWnd():CCustomWnd("NotepadWindow") {
         SaveButton = (CButtonWnd*)GetChildItem("NPWSave");
-        NoteBox = (CTextEntryWnd*)GetChildItem("NPWInput");
+        NoteBox = (CEditWnd*)GetChildItem("NPWInput");
         NoteBox->AddStyle(CWS_WANTRETURN);
         SetWndNotification(CNotepadWnd);
     }
@@ -58,7 +58,7 @@ public:
         return CSidlScreenWnd::WndNotification(pWnd,Message,unknown);
     };
     CButtonWnd *SaveButton;
-    CTextEntryWnd *NoteBox;
+    CEditWnd *NoteBox;
 };
 CNotepadWnd *MyWnd = 0;
 
