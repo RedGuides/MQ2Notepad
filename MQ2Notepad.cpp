@@ -22,10 +22,11 @@
 //
 
 
-#include "../MQ2Plugin.h"
+#include <mq/Plugin.h>
 #include <iostream>
 
 PreSetup("MQ2Notepad");
+PLUGIN_VERSION(1.0);
 
 void SaveFile();
 
@@ -39,7 +40,6 @@ public:
 		SaveButton = (CButtonWnd*)GetChildItem("NPWSave");
 		NoteBox = (CEditWnd*)GetChildItem("NPWInput");
 		NoteBox->AddStyle(CWS_WANTRETURN);
-		SetWndNotification(CNotepadWnd);
 	}
 
 	~CNotepadWnd()
@@ -63,7 +63,7 @@ public:
 CNotepadWnd *MyWnd = 0;
 
 
-void ReadWindowINI(PCSIDLWND pWindow) {
+void ReadWindowINI(CSidlScreenWnd* pWindow) {
 	pWindow->SetLocation({ (LONG)GetPrivateProfileInt("Settings","ChatLeft",100,INIFileName),
 		(LONG)GetPrivateProfileInt("Settings","ChatTop",100,INIFileName),
 		(LONG)GetPrivateProfileInt("Settings","ChatRight",800,INIFileName),
@@ -82,7 +82,7 @@ void ReadWindowINI(PCSIDLWND pWindow) {
 	col.R = GetPrivateProfileInt("Settings", "BGTint.red", 0, INIFileName);
 	col.G =  GetPrivateProfileInt("Settings", "BGTint.green", 0, INIFileName);
 	col.B = GetPrivateProfileInt("Settings", "BGTint.blue", 0, INIFileName);
-	GetPrivateProfileString("Settings","Directory",gszMacroPath,Directory,999,INIFileName);
+	GetPrivateProfileString("Settings","Directory",gPathMacros, Directory,999,INIFileName);
 }
 template <unsigned int _Size>LPSTR SafeItoa(int _Value, char(&_Buffer)[_Size], int _Radix)
 {
@@ -92,7 +92,7 @@ template <unsigned int _Size>LPSTR SafeItoa(int _Value, char(&_Buffer)[_Size], i
 	}
 	return "";
 }
-void WriteWindowINI(PCSIDLWND pWindow) {
+void WriteWindowINI(CSidlScreenWnd* pWindow) {
 	CHAR szTemp[MAX_STRING] = {0};
 
 	if (pWindow->IsMinimized()) {
@@ -149,9 +149,9 @@ void StartEditor() {
 	} else {
 		return; //God forbid
 	}
-	ReadWindowINI((PCSIDLWND) MyWnd);
+	ReadWindowINI(MyWnd);
 	sprintf_s(s,"Notepad - '%s'",FileName);
-	((PCSIDLWND)MyWnd)->CSetWindowText(s);
+	MyWnd->SetWindowText(s);
 
 	//Load File
 	char buff[64000]={0};
@@ -172,7 +172,7 @@ void StartEditor() {
 	fclose(f);
 	// strip tabs
 	for (unsigned int i=0;i<strlen(buff);i++) if (buff[i]=='\t') buff[i]=' ';
-	SetCXStr(&(PCXSTR)MyWnd->NoteBox->InputText,buff);
+	MyWnd->NoteBox->InputText = buff;
 
 }
 
@@ -180,7 +180,7 @@ void SaveFile() {
 	char filename[MAX_STRING];
 	sprintf_s(filename,"%s\\%s",Directory,FileName);
 	char buff[64000]={0};
-	GetCXStr((PCXSTR)MyWnd->NoteBox->InputText,buff,63999);
+	strcpy_s(buff, 63999, MyWnd->NoteBox->InputText.c_str());
 	FILE *f;
 	errno_t err = fopen_s(&f, filename, "w");
 	if (f==NULL) {
@@ -211,14 +211,14 @@ void Notepad(PSPAWNINFO pChar, PCHAR szLine) {
 			WritePrivateProfileString("Settings","Directory",Directory,INIFileName);
 		} else {
 			char s[MAX_STRING]={0};
-			GetPrivateProfileString("Settings","Directory",gszMacroPath,Directory,999,INIFileName);
+			GetPrivateProfileString("Settings","Directory",gPathMacros, Directory,999,INIFileName);
 			sprintf_s(s,"Notepad: Current Directory '%s'",Directory);
 			WriteChatColor(s,USERCOLOR_DEFAULT);
 		}
 		return;
 	}
 	if (strlen(Arg1)>0) {
-		GetPrivateProfileString("Settings","Directory",gszMacroPath,Directory,999,INIFileName);
+		GetPrivateProfileString("Settings","Directory",gPathMacros, Directory,999,INIFileName);
 		sprintf_s(FileName,"%s",Arg1);
 		StartEditor();
 	} else {
@@ -227,17 +227,17 @@ void Notepad(PSPAWNINFO pChar, PCHAR szLine) {
 }
 
 // Called once, when the plugin is to initialize
-PLUGIN_API VOID InitializePlugin(VOID) {
+PLUGIN_API void InitializePlugin() {
 	DebugSpewAlways("Initializing MQ2Notepad");
 	AddCommand("/notepad",Notepad);
 	AddXMLFile("MQUI_NotepadWindow.xml");
 }
 
 // Called once, when the plugin is to shutdown
-PLUGIN_API VOID ShutdownPlugin(VOID) {
+PLUGIN_API void ShutdownPlugin() {
 	DebugSpewAlways("Shutting down MQ2Notepad");
 	if (MyWnd) {
-		WriteWindowINI((PCSIDLWND)MyWnd);
+		WriteWindowINI(MyWnd);
 		delete MyWnd;
 		MyWnd=0;
 	}
@@ -247,11 +247,11 @@ PLUGIN_API VOID ShutdownPlugin(VOID) {
 
 // Called once directly before shutdown of the new ui system, and also
 // every time the game calls CDisplay::CleanGameUI()
-PLUGIN_API VOID OnCleanUI(VOID) {
+PLUGIN_API void OnCleanUI() {
 	DebugSpewAlways("MQ2Notepad::OnCleanUI()");
 	// destroy custom windows, etc
 	if (MyWnd) {
-		WriteWindowINI((PCSIDLWND)MyWnd);
+		WriteWindowINI(MyWnd);
 		delete MyWnd;
 		MyWnd=0;
 	}
