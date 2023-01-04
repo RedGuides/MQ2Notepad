@@ -134,9 +134,8 @@ void StartEditor() {
 	char filename[MAX_STRING];
 	sprintf_s(filename,"%s\\%s",Directory,FileName);
 
-	FILE *f;
-	errno_t err = fopen_s(&f, filename, "r");
-	if (f==NULL) {
+	FILE *f = _fsopen(filename, "r", _SH_DENYNO);
+	if (f == nullptr) {
 		sprintf_s(s,"Notepad: File not found (%s)",filename);
 		WriteChatColor(s,CONCOLOR_RED);
 		return;
@@ -181,9 +180,8 @@ void SaveFile() {
 	sprintf_s(filename,"%s\\%s",Directory,FileName);
 	char buff[64000]={0};
 	strcpy_s(buff, 63999, MyWnd->NoteBox->InputText.c_str());
-	FILE *f;
-	errno_t err = fopen_s(&f, filename, "w");
-	if (f==NULL) {
+	FILE *f = _fsopen(filename, "w", _SH_DENYWR);
+	if (f == nullptr) {
 		char s[MAX_STRING]={0};
 		sprintf_s(s,"Notepad: Write Error (%s)",filename);
 		WriteChatColor(s,CONCOLOR_RED);
